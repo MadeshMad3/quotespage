@@ -1,0 +1,56 @@
+﻿# ******* Variables Section ******************
+#Define these variables
+$WebURL="https://sp.astellasonline.net/teams/RWI/intake/"
+$ListName ="Intake"
+$ReportFile = "D:\Development\Puja\ApprovedItems_History.csv"
+$projectId
+$proID
+$proURL
+# *********************************************
+ 
+#delete file if exists
+If (Test-Path $ReportFile)
+ {
+ Remove-Item $ReportFile
+ }
+ 
+#Get the Web and List
+$Web = Get-SPWeb $WebURL
+$List = $web.Lists.TryGetList($ListName)
+ 
+ #Check if list exists
+ if($List -ne $null)
+ {
+  #Get all list items
+  $ItemsColl = $List.Items
+   
+  #Write Report Header
+  Add-Content -Path $ReportFile -Value "Item ID, Project Id, Title, Modified by, Modified Date, Project URL"
+  
+  #Loop through each item
+  foreach ($item in $ItemsColl)
+  {
+       $projectId = New-Object Microsoft.SharePoint.SPFieldUrlValue($item["projectID"])
+       $proID = $projectId.Description
+       $proURL = $projectId.URL
+   #Iterate each version
+    foreach($version in $item.Versions)
+     {
+      if ($version['status'] -eq "Approved")
+      {
+      if (($version.CreatedBy.User.DisplayName) -eq "Amanda Hart" -or ($version.CreatedBy.User.DisplayName) -eq "Jason Yiu")
+      {
+      
+    #Get the version content
+    $VersionData = "$($item.id), $proID, $($version['Title']), $($version.CreatedBy.User.DisplayName), $($version.Created), $proURL"
+    
+	#Write to report
+    Add-Content -Path $ReportFile -Value $VersionData
+    break
+    }
+   }
+	}
+   }
+ }
+Write-Host "Version history has been exported successfully!"
+
